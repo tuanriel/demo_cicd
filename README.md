@@ -15,14 +15,16 @@ demo-site/
 ├── vite.config.js
 ├── package.json
 ├── .viettelcloud/workflows/
-│   └── deploy.yml          ← PIPELINE: build React + deploy (logic ở đây)
-├── docker-compose.demo.yml ← nginx (override riêng, KHÔNG đụng cicd-platform)
+│   └── deploy.yml          ← PIPELINE: build React + publish (logic ở đây)
+├── docker-compose.demo.yml ← nginx CHẠY RIÊNG (không gộp cicd-platform)
+├── nginx-demo.conf         ← config nginx demo (SPA fallback)
 └── README.md
 ```
 
-Ranh giới: **build + deploy = trong workflow**; **backend cicd-platform giữ
-nguyên**; nginx là hạ tầng demo riêng qua file override; image Jenkins **không
-bị sửa** (pipeline tự tải Node portable, cache trong `$HOME`).
+Ranh giới: **build + publish = trong workflow**; **backend cicd-platform giữ
+nguyên, KHÔNG recreate**; nginx demo là compose **chạy độc lập**; image Jenkins
+**không bị sửa** (pipeline tự tải Node portable, cache trong `$HOME`). Liên kết
+duy nhất: nginx demo mount volume `jenkins_data` **read-only** để đọc bản build.
 
 ---
 
@@ -38,12 +40,20 @@ git remote add origin https://github.com/<user>/orbit-store.git
 git push -u origin main
 ```
 
-### 2. Dựng nginx + web root trên VPS
-Tại thư mục `cicd-platform` trên VPS:
+### 2. Chạy nginx demo trên VPS (compose ĐỘC LẬP)
+Clone repo này về VPS rồi chạy — KHÔNG kèm compose của cicd-platform:
 ```bash
-sudo mkdir -p /srv/demo-site && sudo chown 1000:1000 /srv/demo-site
-echo '<h1>Cho deploy...</h1>' | sudo tee /srv/demo-site/index.html
-docker compose -f docker-compose.yml -f ../demo-site/docker-compose.demo.yml up -d
+# a) Kiem tra ten volume that cua jenkins, sua "name:" trong docker-compose.demo.yml
+docker volume ls | grep jenkins        # vd: cicd-platform_jenkins_data
+
+# b) (tuy chon) tao san placeholder de demo co gi hien truoc khi build lan dau
+docker exec -u jenkins cicd-jenkins sh -c \
+  'mkdir -p $HOME/published/orbit-store && echo "<h1>Cho deploy...</h1>" > $HOME/published/orbit-store/index.html'
+
+# c) Chay nginx demo (compose rieng — khong recreate backend)
+cd ~/orbit-store
+docker compose -f docker-compose.demo.yml up -d
+curl -I http://127.0.0.1:8082          # phai 200
 ```
 
 ### 3. Trỏ demo.orbitai.vn → VPS:8082

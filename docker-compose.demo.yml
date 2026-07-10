@@ -1,39 +1,31 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Hạ tầng RIÊNG cho demo — KHÔNG nằm trong cicd-platform.
+# Hạ tầng demo — CHẠY ĐỘC LẬP, KHÔNG gộp với cicd-platform, KHÔNG recreate
+# container backend nào:
 #
-# File này là compose OVERRIDE: gộp cùng docker-compose.yml của cicd-platform
-# lúc deploy, KHÔNG sửa file gốc. Nó làm 2 việc:
-#   1. Thêm service `web` (nginx) phục vụ site tĩnh tại /srv/demo-site.
-#   2. Gắn thêm 1 volume /srv/demo-site vào container `jenkins` sẵn có, để
-#      step `sh` trong pipeline copy file ra được (đây là "cầu nối" duy nhất
-#      giữa Jenkins và nginx — bản thân logic deploy vẫn nằm trong workflow).
+#     docker compose -f docker-compose.demo.yml up -d
 #
-# CÁCH DEPLOY (trên VPS, tại thư mục cicd-platform):
-#   # chuẩn bị web root 1 lần, cho phép user jenkins (uid 1000) ghi:
-#   sudo mkdir -p /srv/demo-site && sudo chown 1000:1000 /srv/demo-site
-#   echo '<h1>Cho deploy...</h1>' | sudo tee /srv/demo-site/index.html
+# nginx phục vụ nội dung mà pipeline đã build sẵn vào volume `jenkins_data`
+# (mount READ-ONLY — chỉ đọc, không tác động tới Jenkins). Pipeline ghi build
+# ra $HOME/published/orbit-store bên trong jenkins_home (xem deploy.yml);
+# nginx đọc ở /jenkins/published/orbit-store.
 #
-#   # gộp 2 file compose rồi up (base giữ nguyên, override thêm demo):
-#   docker compose -f docker-compose.yml -f ../demo-site/docker-compose.demo.yml up -d
-#
-# Sau đó trỏ demo.orbitai.vn → cổng 8082 của VPS (Cloudflare/reverse-proxy,
-# giống hệt cách bạn đã làm cho apicicd.orbitai.vn).
+# Liên kết DUY NHẤT với cicd-platform: dùng chung volume jenkins_data (read-only).
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
-  # Gắn thêm web root vào container jenkins CÓ SẴN (compose merge volumes).
-  jenkins:
-    volumes:
-      - /srv/demo-site:/srv/demo
-
-  # nginx phục vụ site tĩnh — hạ tầng của demo, độc lập với backend.
   web:
     image: nginx:alpine
-    container_name: cicd-demo-web
+    container_name: orbit-demo-web
     ports:
-      - "8082:80"
+      - "8082:80"          # host nginx (demo.orbitai.vn) proxy vào cổng này
     volumes:
-      - /srv/demo-site:/usr/share/nginx/html:ro
-    networks:
-      - cicd_net
+      - jenkins_data:/jenkins:ro
+      - ./nginx-demo.conf:/etc/nginx/conf.d/default.conf:ro
     restart: unless-stopped
+
+volumes:
+  jenkins_data:
+    external: true
+    # ⚠️ Tên volume THẬT trên VPS — kiểm tra bằng:  docker volume ls | grep jenkins
+    # Compose thường prefix theo tên thư mục dự án, nên hay là:
+    name: cicd-platform_jenkins_data
