@@ -3,7 +3,7 @@ import { products } from "./products.js";
 
 // ▼▼▼ ĐỔI CÁC GIÁ TRỊ NÀY RỒI COMMIT ĐỂ THẤY GIAO DIỆN ĐỔI ▼▼▼
 const SITE_VERSION = "v1";
-const BANNER = "🎉 Khai trương Orbit Store — freeship toàn quốc! Sale 12/07";
+const BANNER = "🎉 Khai trương Orbit Store — freeship toàn quốc! Sale 11/06";
 // ▲▲▲ ---------------------------------------------------------- ▲▲▲
 
 const formatVND = (n) => n.toLocaleString("vi-VN") + "₫";
