@@ -58,4 +58,6 @@ stages:
           ls -la "$PUB"
 
 finally:
-  - sh: echo "Pipeline ket thuc — build #$BUILD_NUMBER ($BUILD_URL)"
+  # Chi dung ASCII trong sh: — ky tu Unicode (— dau gach dai, tieng Viet co dau)
+  # bi hong khi Jenkinsfile day qua config.xml, gay "unterminated quoted string".
+  - sh: echo "Pipeline done - build #$BUILD_NUMBER $BUILD_URL"
