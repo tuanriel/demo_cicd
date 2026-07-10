@@ -58,6 +58,8 @@ stages:
           ls -la "$PUB"
 
 finally:
-  # Chi dung ASCII trong sh: — ky tu Unicode (— dau gach dai, tieng Viet co dau)
-  # bi hong khi Jenkinsfile day qua config.xml, gay "unterminated quoted string".
-  - sh: echo "Pipeline done - build #$BUILD_NUMBER $BUILD_URL"
+  # Dung block scalar (|) — KHONG viet "- sh: echo ...#..." inline, vi trong YAML
+  # dau " #" (space + hash) bat dau COMMENT -> cat cut chuoi -> nginx/dash bao
+  # "unterminated quoted string". Trong block scalar thi # la ky tu thuong.
+  - sh: |
+      echo "Pipeline done: build $BUILD_NUMBER $BUILD_URL"
