@@ -1,0 +1,56 @@
+# Pipeline build + deploy app React (Vite) — TOÀN BỘ nằm trong workflow,
+# không đụng gì tới project cicd-platform, không sửa image Jenkins.
+#
+# Vì image Jenkins compose không có Node, step build tự tải Node (bản portable,
+# CACHE trong $HOME nên chỉ tải 1 lần) rồi chạy `npm ci && npm run build`.
+# Sau đó copy thư mục dist/ ra /srv/demo (web root nginx phục vụ demo.orbitai.vn).
+#
+# ⚠️ runner: built-in — KHÔNG dùng "jenkins-jenkins-agent" (label k8s, bản
+#    compose không có → build treo hàng đợi).
+runner: built-in
+
+trigger:
+  push:
+    branches:
+      - main
+
+stages:
+  - name: Checkout
+    steps:
+      - gitCheckout:
+
+  - name: Build & Deploy
+    steps:
+      - sh: |
+          set -e
+          NODE_VER=v20.13.1
+          NODE_DIR="$HOME/.node/$NODE_VER"
+
+          # 1) Node portable, cache trong $HOME (jenkins_home) — chỉ tải lần đầu.
+          if [ ! -x "$NODE_DIR/bin/node" ]; then
+            echo "== Tai Node $NODE_VER (lan dau) =="
+            mkdir -p "$NODE_DIR"
+            curl -fsSL "https://nodejs.org/dist/$NODE_VER/node-$NODE_VER-linux-x64.tar.gz" -o /tmp/node.tgz
+            tar -xzf /tmp/node.tgz -C "$NODE_DIR" --strip-components=1
+            rm -f /tmp/node.tgz
+          fi
+          export PATH="$NODE_DIR/bin:$PATH"
+          echo "node $(node -v) / npm $(npm -v)"
+
+          # 2) Cai dependency + build React.
+          echo "== npm ci =="
+          npm ci --no-audit --no-fund
+          echo "== npm run build =="
+          npm run build
+
+          # 3) Deploy: dua dist/ ra web root.
+          if [ ! -d /srv/demo ]; then
+            echo "ERROR: /srv/demo chua duoc mount (xem docker-compose.demo.yml)"; exit 1
+          fi
+          rm -rf /srv/demo/* /srv/demo/.[!.]* 2>/dev/null || true
+          cp -a dist/. /srv/demo/
+          echo "== Deploy xong. Web root: =="
+          ls -la /srv/demo
+
+finally:
+  - sh: echo "Pipeline ket thuc — build #$BUILD_NUMBER ($BUILD_URL)"
