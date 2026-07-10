@@ -1,4 +1,4 @@
-# Orbit Store — Demo CI/CD ("commit → giao diện đổi")
+# Orbit Store — Demo CI/CD ("commit → giao diện đổi") 
 
 App React (Vite) — trang bán hàng đơn giản — dùng demo CI/CD Platform:
 push code → webhook GitHub → backend trigger Jenkins → **build React** →
