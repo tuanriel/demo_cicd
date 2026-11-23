@@ -1,0 +1,21 @@
+runner: built-in
+
+trigger:
+  push:
+    branches: [main]
+
+stages:
+  - name: Checkout
+    steps:
+      - gitCheckout: {}
+
+  - name: Lint
+    steps:
+      - sh: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+  - name: Test
+    steps:
+      - sh: |
+          npm test
