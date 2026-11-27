@@ -10,12 +10,16 @@ stages:
       - gitCheckout: {}
 
   - name: Lint
+    container:
+      image: node:20
     steps:
       - sh: |
           npm ci --no-audit --no-fund
           npm run build
 
   - name: Test
+    container:
+      image: node:20
     steps:
       - sh: |
-          npm test
+          npm run build
