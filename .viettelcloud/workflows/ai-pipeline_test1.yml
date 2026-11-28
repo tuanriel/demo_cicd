@@ -1,0 +1,18 @@
+runner: jenkins-jenkins-agent
+
+trigger:
+  push:
+    tags: [v*]
+
+stages:
+  - name: Checkout
+    steps:
+      - gitCheckout: {}
+
+  - name: Build and Push Image
+    steps:
+      - buildPushImage:
+          imageName: registry.placeholder.local/tuanriel/demo_cicd
+          tag: $env.gitRef
+          registry: registry.placeholder.local
+          credentials: docker-registry-credentials
