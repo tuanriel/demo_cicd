@@ -1,4 +1,4 @@
-runner: built-in
+runner: jenkins-jenkins-agent
 
 trigger:
   push:
@@ -10,11 +10,17 @@ stages:
       - gitCheckout: {}
 
   - name: Lint
+    container:
+      image: node:20
     steps:
       - sh: |
           npm ci --no-audit --no-fund
-          npm run lint
+          npm run build
 
   - name: Test
+    container:
+      image: node:20
     steps:
-      - sh: npm test
+      - sh: |
+          npm ci --no-audit --no-fund
+          npm run build
