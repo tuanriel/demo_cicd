@@ -1,0 +1,26 @@
+runner: jenkins-jenkins-agent
+
+trigger:
+  push:
+    branches: [main]
+
+stages:
+  - name: Checkout
+    steps:
+      - gitCheckout: {}
+
+  - name: Build
+    container:
+      image: node:20
+    steps:
+      - sh: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+  - name: Test
+    container:
+      image: node:20
+    steps:
+      - sh: |
+          npm ci --no-audit --no-fund
+          npm run build
